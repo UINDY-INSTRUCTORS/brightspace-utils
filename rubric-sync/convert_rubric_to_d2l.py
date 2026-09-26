@@ -2,11 +2,12 @@
 """
 Convert RUBRIC.md files to Brightspace-importable ZIP packages.
 
-Supports both ABET-style (single table) and Lab-style (sectioned) rubric formats.
+Detects the rubric format automatically: ABET-style (E/S/D/U table), Lab-style
+(sectioned), or condensed table (Poor/Good/Excellent columns).
 
 Usage:
-    python3 convert_rubric_to_d2l.py /path/to/RUBRIC.md --output my-rubric.zip
-    python3 convert_rubric_to_d2l.py /path/to/RUBRIC.md  # Uses default output name
+    uv run rubric-sync/convert_rubric_to_d2l.py /path/to/RUBRIC.md --output my-rubric.zip
+    uv run rubric-sync/convert_rubric_to_d2l.py /path/to/RUBRIC.md  # Uses default output name
 """
 
 import argparse
@@ -66,6 +67,11 @@ Examples:
             print(f"✓ Title: {rubric_data.title}")
             print(f"✓ Criteria: {rubric_data.num_criteria}")
             print(f"✓ Total weight: {rubric_data.total_weight:.0%}")
+
+        if abs(rubric_data.total_weight - 1.0) > 0.01:
+            print(f"⚠️  Warning: criterion weights sum to {rubric_data.total_weight:.0%}, not 100% "
+                  f"({rubric_data.num_criteria} criteria). Check the rubric before importing.",
+                  file=sys.stderr)
 
         # Determine output path
         if args.output:

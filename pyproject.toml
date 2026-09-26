@@ -1,0 +1,28 @@
+[project]
+name = "brightspace-utils"
+version = "0.1.0"
+description = "Tools for moving course material into and out of Brightspace (D2L)"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "pandas>=2.2",  # folder-feedback/get_user_ids.py
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8",
+]
+
+[tool.uv]
+# Use uv's own Python builds, never conda's or the system's. Without this, on a
+# machine with conda base on PATH, uv satisfies .python-version with conda's
+# interpreter and the venv silently depends on it.
+python-preference = "only-managed"
+
+# No [build-system]: this is a collection of scripts, not an installable package,
+# so uv manages the environment without trying to build/install the project itself.
+
+[tool.pytest.ini_options]
+# rubric-sync modules import each other as top-level modules (from rubric_parser import ...)
+pythonpath = ["rubric-sync"]
+testpaths = ["rubric-sync"]

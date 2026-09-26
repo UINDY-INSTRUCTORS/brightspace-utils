@@ -3,35 +3,27 @@
 ## One-Minute Setup
 
 ```bash
-cd brightspace-utils/rubric-sync
-python3 convert_rubric_to_d2l.py /path/to/RUBRIC.md
+cd brightspace-utils/rubric-sync   # uv finds the project's pyproject.toml one level up
+uv run convert_rubric_to_d2l.py /path/to/RUBRIC.md
 ```
 
 Output: `rubric.zip` in current directory, ready to import to Brightspace.
 
 ## Scoring Options
 
-Three ways to handle point values:
+Two ways to handle point values:
 
 ### Default: Simple 0-3 Scale (Recommended)
 ```bash
-python3 convert_rubric_to_d2l.py RUBRIC.md
+uv run convert_rubric_to_d2l.py RUBRIC.md
 ```
 - Level values: Exemplary=3, Satisfactory=2, Developing=1, Unsatisfactory=0
 - Overall thresholds: Exemplary 75%+, Good 50-74%, Developing 25-49%, Unsatisfactory <25%
 - **Use this when:** You want Brightspace to auto-calculate overall scores
 
-### Option: Weight-Proportional Points
-```bash
-python3 convert_rubric_to_d2l.py RUBRIC.md --proportional-points
-```
-- Points scale with criterion weights (e.g., 10% weight = 10 point max)
-- Overall thresholds adjust proportionally
-- **Use this when:** You want points to reflect the weight percentages in your rubric
-
 ### Option: No Scoring Thresholds (Unspecified)
 ```bash
-python3 convert_rubric_to_d2l.py RUBRIC.md --no-scoring
+uv run convert_rubric_to_d2l.py RUBRIC.md --no-scoring
 ```
 - Levels still have 0-3 values
 - No overall_level_set (Brightspace uses defaults, or you configure manually)
@@ -49,14 +41,14 @@ python3 convert_rubric_to_d2l.py RUBRIC.md --no-scoring
 
 ### EENG-340 (ABET format)
 ```bash
-python3 convert_rubric_to_d2l.py \
+uv run convert_rubric_to_d2l.py \
   ~/Development/quarto_reports/build_quarto_reports/eeng-340-rubric.md \
   --output eeng340.zip
 ```
 
 ### PH-230 Project 8 (Lab format)
 ```bash
-python3 convert_rubric_to_d2l.py \
+uv run convert_rubric_to_d2l.py \
   ~/Development/quarto_reports/ph230/p8-motors/.github/feedback/RUBRIC.md \
   --output ph230-p8.zip
 ```
@@ -66,7 +58,7 @@ python3 convert_rubric_to_d2l.py \
 for rubric in ~/Development/quarto_reports/ph230/*/. github/feedback/RUBRIC.md; do
   dir=$(dirname "$rubric")
   project=$(basename "$dir")
-  python3 convert_rubric_to_d2l.py "$rubric" \
+  uv run convert_rubric_to_d2l.py "$rubric" \
     --output "$project-rubric.zip"
 done
 ```
@@ -133,8 +125,8 @@ unzip -p my-rubric.zip rubrics_d2l.xml   # Print XML to terminal
 **Compare two rubrics:**
 ```bash
 # Generate both
-python3 convert_rubric_to_d2l.py rubric1.md -o rubric1.zip
-python3 convert_rubric_to_d2l.py rubric2.md -o rubric2.zip
+uv run convert_rubric_to_d2l.py rubric1.md -o rubric1.zip
+uv run convert_rubric_to_d2l.py rubric2.md -o rubric2.zip
 
 # Extract and diff XML
 unzip -p rubric1.zip rubrics_d2l.xml > /tmp/r1.xml

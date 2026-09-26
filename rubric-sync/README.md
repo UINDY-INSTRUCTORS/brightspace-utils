@@ -1,24 +1,23 @@
 # Rubric-Sync: RUBRIC.md → Brightspace Converter
 
-Convert your course rubrics to Brightspace-importable packages in seconds. Supports both ABET-style and lab-style rubric formats.
+Convert your course rubrics to Brightspace-importable packages in seconds. Detects the rubric format automatically — ABET-style, sectioned lab-style, or condensed table.
 
 ## Quick Start
 
+Run from `rubric-sync/` (or anywhere in the repo) — `uv run` uses the project's environment.
+
 ```bash
 # Convert a single rubric (default: simple 0-3 scale)
-python3 convert_rubric_to_d2l.py /path/to/RUBRIC.md
+uv run convert_rubric_to_d2l.py /path/to/RUBRIC.md
 
 # Specify output location
-python3 convert_rubric_to_d2l.py RUBRIC.md --output my-rubric.zip
+uv run convert_rubric_to_d2l.py RUBRIC.md --output my-rubric.zip
 
 # Verbose output (see parsing details)
-python3 convert_rubric_to_d2l.py RUBRIC.md -v
-
-# Use weight-proportional points instead of simple 0-3
-python3 convert_rubric_to_d2l.py RUBRIC.md --proportional-points
+uv run convert_rubric_to_d2l.py RUBRIC.md -v
 
 # Don't specify scoring thresholds (let Brightspace use defaults)
-python3 convert_rubric_to_d2l.py RUBRIC.md --no-scoring
+uv run convert_rubric_to_d2l.py RUBRIC.md --no-scoring
 ```
 
 ## Supported Formats
@@ -85,10 +84,38 @@ keyword1, keyword2, keyword3
 - Rich metadata: Indicators, Keywords, Common Issues
 - Per-criterion point ranges and weights
 
+### Condensed Table Format
+Used by the newer PH-230 / PH-280 feedback rubrics (`ai-feedback-system/ph230-p*`, `ph280-p*`).
+
+```markdown
+# PHYS 230 P8: Sensor-Controlled Motors Rubric
+
+**Course**: PHYS/MENG 230
+**Total Points**: 100
+
+| Section | Poor (0–35%) | Good (35–65%) | Excellent (65–100%) |
+|---------|--------------|---------------|---------------------|
+| **Abstract & Description (10%)** | ... | ... | ... |
+```
+
+**Features:**
+- Detected by a header row whose columns (after the first) are all level names —
+  Poor/Good/Excellent or Unsatisfactory/Developing/Satisfactory/Exemplary, **in any order**
+- Weight inline in the criterion cell (`(10%)`, anywhere in the label) **or** in a trailing
+  `Weight` column
+- Rows may span several lines with indented ` |` continuations (the `phys-230-rubric.md`
+  template style)
+
+### Detection and failures
+
+Detection order: `## Criterion N:` → Lab; `| # | Report Section |` → ABET; level-name header →
+Table. Anything else is an **error**, as is a parse that yields 0 criteria — an empty rubric is
+never packaged. The CLI also warns if criterion weights don't sum to 100%.
+
 ## How It Works
 
 1. **Parser** (`rubric_parser.py`)
-   - Detects rubric format automatically (ABET or Lab)
+   - Detects rubric format automatically (ABET, Lab or Table)
    - Extracts criteria, performance levels, metadata
    - Returns normalized `RubricData` structure
 
@@ -160,14 +187,16 @@ brightspace-utils/rubric-sync/
 Run the test suite:
 
 ```bash
-python3 test_parser.py      # Test parsing on both formats
-python3 test_converter.py   # Test XML generation
+uv run pytest          # from anywhere in the repo
 ```
+
+`tests/test_formats.py` covers every format and variant against the fixtures in
+`tests/fixtures/`, including the shapes that must fail loudly.
 
 Or test the full CLI:
 
 ```bash
-python3 convert_rubric_to_d2l.py /path/to/RUBRIC.md -v
+uv run convert_rubric_to_d2l.py /path/to/RUBRIC.md -v
 ```
 
 ## Future Enhancements
@@ -181,14 +210,14 @@ python3 convert_rubric_to_d2l.py /path/to/RUBRIC.md -v
 
 ## Known Limitations
 
-- ⚠️ **A third rubric format exists that this tool does not parse.** The condensed
-  single-table rubrics used by `ai-feedback-system/ph230-p*` and `ph280-p*` have the shape
-  `| Section | Poor (0–35%) | Good (35–65%) | Excellent (65–100%) |` — criteria as bolded
-  row labels with inline weights, three levels rather than four. `detect_format()` falls
-  through to `abet`, `parse_abet()` matches no rows, and you get a rubric with **0 criteria
-  and no error**. A sample is checked in as
-  `tests/fixtures/ph230-condensed-UNSUPPORTED.md`. Until this is handled, check the criteria
-  count in `-v` output before importing. The sectioned Lab format below is unaffected.
+- **Grouped sub-rows are not supported.** A table where a weighted group row has empty level
+  cells and unweighted sub-items beneath it (e.g. `ph280/P01-rubric-coversheet.md`) raises an
+  error rather than guessing how to split the weight. Fixture:
+  `tests/fixtures/ph280-grouped-UNSUPPORTED.md`.
+- **Tables without weights** (e.g. `RUBRIC_QUICK.md` quick-reference sheets) and numeric-level
+  rubrics (`1 (unacceptable)` … with a score column) are rejected.
+- **Multi-table ABET files** (e.g. separate pre-lab and post-lab tables) are merged into one
+  rubric; the weight warning will flag the result.
 - **Round-trip**: Exporting from Brightspace won't perfectly recreate original RUBRIC.md (acceptable, semantic equivalence maintained)
 - **Level names**: Custom level names beyond E/S/D/U not yet supported (can be added)
 - **Weights**: Brightspace stores weights in criterion names, not native weighting

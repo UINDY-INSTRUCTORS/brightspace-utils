@@ -29,7 +29,7 @@ class Criterion:
 class RubricData:
     """Complete rubric structure, format-agnostic"""
     title: str
-    format: str  # 'abet' or 'lab'
+    format: str  # 'abet', 'lab' or 'table'
     course: Optional[str] = None
     total_points: int = 100
     criteria: List[Criterion] = field(default_factory=list)
