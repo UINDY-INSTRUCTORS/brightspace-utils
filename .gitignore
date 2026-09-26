@@ -10,6 +10,8 @@ venv/
 # Brightspace exports carry names, usernames and org-defined IDs (A-numbers).
 # Never commit them. Keep working copies outside the repo where practical.
 classlist*.html
+# ...except this synthetic test fixture (invented people)
+!folder-feedback/tests/fixtures/classlist-fake.html
 classlist*.csv
 *-ids.csv
 *_ids.csv
@@ -17,5 +19,7 @@ classlist*.csv
 *grades*.csv
 *enrollment*.csv
 users.csv
+# folder-feedback output: one folder per student, named after them
+upload-*/
 brightspace_user_map.csv
 *user*map*.csv

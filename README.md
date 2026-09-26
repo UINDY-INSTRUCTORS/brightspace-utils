@@ -8,6 +8,7 @@ the web UI.
 | Tool | Purpose |
 |---|---|
 | [`rubric-sync/`](rubric-sync/) | Convert a `RUBRIC.md` into a Brightspace-importable rubric package (`.zip`) |
+| [`folder-feedback/`](folder-feedback/) | Per-student folders in Brightspace's naming, zipped for bulk feedback upload *(unverified)* |
 
 ## Setup
 
