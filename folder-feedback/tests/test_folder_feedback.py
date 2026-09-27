@@ -16,17 +16,45 @@ def make_roster(tmp_path, *extra):
     return roster
 
 
-def test_parse_classlist_dedupes_and_normalises_names():
+def usernames(roster_csv):
+    with roster_csv.open() as f:
+        return [r["username"] for r in csv.DictReader(f)]
+
+
+def test_parse_classlist_everyone_deduped():
     roster = parse_classlist((FIXTURES / "classlist-fake.html").read_text())
-    assert [r["brightspace_user_id"] for r in roster] == ["90001", "90002", "90003"]
+    assert [r["brightspace_user_id"] for r in roster] == ["90001", "90002", "90003", "90004"]
     assert roster[1] == {"brightspace_user_id": "90002", "username": "hopperg",
-                         "org_defined_id": "A00000002", "full_name": "Grace Hopper"}
+                         "org_defined_id": "A00000002", "full_name": "Grace Hopper",
+                         "role": "Learner - (Incomplete)"}
+
+
+def test_parse_classlist_ignores_earlier_select_labels():
+    # Regression: a page-wide regex ran from the toolbar's aria-label="Select all ..."
+    # to the first row, putting the whole page into the first name.
+    first = parse_classlist((FIXTURES / "classlist-fake.html").read_text())[0]
+    assert first["full_name"] == "Ada Lovelace"
+
+
+def test_parse_classlist_unescapes_entities():
+    names = [r["full_name"] for r in parse_classlist((FIXTURES / "classlist-fake.html").read_text())]
+    assert "Miles O'Brien" in names
+
+
+def test_roster_keeps_learners_by_default(tmp_path):
+    assert usernames(make_roster(tmp_path)) == ["lovelacea", "hopperg", "obrienm"]
+
+
+def test_roster_all_roles(tmp_path):
+    assert usernames(make_roster(tmp_path, "--all-roles")) == ["lovelacea", "hopperg", "obrienm", "turinga"]
+
+
+def test_roster_role_prefix(tmp_path):
+    assert usernames(make_roster(tmp_path, "--role", "Instructor")) == ["turinga"]
 
 
 def test_roster_exclude(tmp_path):
-    roster = make_roster(tmp_path, "--exclude", "turinga")
-    with roster.open() as f:
-        assert [r["username"] for r in csv.DictReader(f)] == ["lovelacea", "hopperg"]
+    assert usernames(make_roster(tmp_path, "--exclude", "hopperg")) == ["lovelacea", "obrienm"]
 
 
 def test_roster_with_no_students_fails(tmp_path):
@@ -48,8 +76,14 @@ def test_folders_created(tmp_path):
     assert sorted(p.name for p in out.iterdir()) == [
         "90001-192268 - Ada Lovelace - Sep 26, 2026 741 PM",
         "90002-192268 - Grace Hopper - Sep 26, 2026 741 PM",
-        "90003-192268 - Alan Turing - Sep 26, 2026 741 PM",
+        "90003-192268 - Miles O'Brien - Sep 26, 2026 741 PM",
     ]
+
+
+def test_folders_accepts_roster_without_role_column(tmp_path):
+    roster = tmp_path / "roster.csv"
+    roster.write_text("brightspace_user_id,username,org_defined_id,full_name\n90001,lovelacea,A1,Ada Lovelace\n")
+    assert main(["folders", "-a", "1", "-r", str(roster), "-o", str(tmp_path / "up"), "--timestamp", TS]) == 0
 
 
 def test_folders_dry_run_creates_nothing(tmp_path):

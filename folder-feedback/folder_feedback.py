@@ -19,41 +19,61 @@ gitignored in this repo; don't move them somewhere that isn't.
 """
 
 import argparse
+import collections
 import csv
 import datetime
+import html
 import re
 import sys
 import zipfile
 from pathlib import Path
 
-ROSTER_FIELDS = ["brightspace_user_id", "username", "org_defined_id", "full_name"]
+ROSTER_FIELDS = ["brightspace_user_id", "username", "org_defined_id", "full_name", "role"]
 
-# The Classlist grid: each row's checkbox carries the full name (aria-label) and the
-# Brightspace user id (value="i<n>_<userid>"); the next two cells are username and
-# org-defined id.
-CLASSLIST_ROW = re.compile(
-    r'aria-label="Select\s+(.*?)"\s+name="gridUsers_cb"\s+value="i\d+_(\d+)"'
-    r'.*?<td class="d_gn"><label>(.*?)</label></td>'
-    r'\s*<td class="d_gn"><label>(.*?)</label></td>',
-    re.DOTALL,
-)
+# Classlist grid row, one <tr> per person:
+#   [select checkbox] [image] [name link] [username] [org-defined id] [role] [last accessed]
+# The checkbox carries the user id (value="i<n>_<userid>") and the name as
+# aria-label="Select <First Last>". Parsed row by row: a single regex across the
+# whole page let a non-greedy match run from an unrelated aria-label="Select ..."
+# earlier in the page, putting ~180 KB of HTML into the first student's name.
+CHECKBOX = re.compile(r'<input\b[^>]*\bname="gridUsers_cb"[^>]*>')
+CELL = re.compile(r'<t[dh]\b[^>]*>(.*?)</t[dh]>', re.DOTALL)
+USERNAME_CELL, ORG_ID_CELL, ROLE_CELL = 3, 4, 5
+
+DEFAULT_ROLES = ["Learner"]  # prefix match, so "Learner - (Incomplete)" is kept
 
 # e.g. "Sep 26, 2026 0741 PM"
 TIMESTAMP_FORMAT = "%b %d, %Y %I%M %p"
 
 
-def parse_classlist(html: str) -> list[dict]:
-    """Roster rows from a saved Brightspace Classlist page, de-duplicated by user id."""
+def _text(fragment: str) -> str:
+    return " ".join(html.unescape(re.sub(r"<[^>]+>", " ", fragment)).split())
+
+
+def _attr(tag: str, name: str) -> str:
+    m = re.search(rf'\b{name}="([^"]*)"', tag)
+    return html.unescape(m.group(1)) if m else ""
+
+
+def parse_classlist(page: str) -> list[dict]:
+    """Everyone in a saved Brightspace Classlist page, de-duplicated by user id."""
     roster, seen = [], set()
-    for full_name, user_id, username, org_id in CLASSLIST_ROW.findall(html):
-        if user_id in seen:
+    for row in re.split(r"(?=<tr\b)", page):
+        box = CHECKBOX.search(row)
+        if not box:
+            continue
+        row = row[:row.find("</tr>")] if "</tr>" in row else row
+        user_id = _attr(box.group(0), "value").rpartition("_")[2]
+        cells = CELL.findall(row)
+        if not user_id.isdigit() or len(cells) <= ROLE_CELL or user_id in seen:
             continue
         seen.add(user_id)
         roster.append({
-            "brightspace_user_id": user_id.strip(),
-            "username": username.strip(),
-            "org_defined_id": org_id.strip(),
-            "full_name": " ".join(full_name.split()),
+            "brightspace_user_id": user_id,
+            "username": _text(cells[USERNAME_CELL]),
+            "org_defined_id": _text(cells[ORG_ID_CELL]),
+            "full_name": " ".join(_attr(box.group(0), "aria-label").removeprefix("Select ").split()),
+            "role": _text(cells[ROLE_CELL]),
         })
     return roster
 
@@ -61,7 +81,7 @@ def parse_classlist(html: str) -> list[dict]:
 def read_roster(path: Path) -> list[dict]:
     with path.open(newline="", encoding="utf-8") as f:
         reader = csv.DictReader(f)
-        missing = set(ROSTER_FIELDS) - set(reader.fieldnames or [])
+        missing = {"brightspace_user_id", "username", "full_name"} - set(reader.fieldnames or [])
         if missing:
             raise ValueError(f"{path} is missing column(s): {', '.join(sorted(missing))} "
                              f"- make it with the 'roster' subcommand")
@@ -75,20 +95,30 @@ def folder_name(student: dict, assignment_id: str, timestamp: str) -> str:
 
 
 def cmd_roster(args) -> int:
-    html = args.classlist.read_text(encoding="utf-8", errors="ignore")
-    roster = parse_classlist(html)
-    if not roster:
-        print(f"❌ No students found in {args.classlist}. Save the Classlist page itself "
+    everyone = parse_classlist(args.classlist.read_text(encoding="utf-8", errors="ignore"))
+    if not everyone:
+        print(f"❌ Nobody found in {args.classlist}. Save the Classlist page itself "
               "(not a print view) - or Brightspace has changed its markup.", file=sys.stderr)
         return 1
-    if args.exclude:
-        roster = [r for r in roster if r["username"] not in args.exclude]
+
+    roles = args.role or DEFAULT_ROLES
+    roster = [r for r in everyone
+              if (args.all_roles or r["role"].startswith(tuple(roles)))
+              and r["username"] not in (args.exclude or [])]
+    skipped = collections.Counter(r["role"] for r in everyone if r not in roster)
+
+    if not roster:
+        print(f"❌ {len(everyone)} people found but none kept. Roles on the page: "
+              f"{dict(collections.Counter(r['role'] for r in everyone))}", file=sys.stderr)
+        return 1
 
     with args.output.open("w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=ROSTER_FIELDS)
         writer.writeheader()
         writer.writerows(roster)
-    print(f"✅ {len(roster)} students -> {args.output}")
+    print(f"✅ {len(roster)} people -> {args.output}  {dict(collections.Counter(r['role'] for r in roster))}")
+    if skipped:
+        print(f"   skipped: {dict(skipped)}")
     return 0
 
 
@@ -160,8 +190,13 @@ def main(argv=None) -> int:
     p.add_argument("classlist", type=Path, help="Classlist page saved as HTML")
     p.add_argument("-o", "--output", type=Path, default=Path("roster.csv"),
                    help="Roster CSV to write (default: roster.csv)")
+    p.add_argument("--role", action="append", metavar="PREFIX",
+                   help=f"Keep people whose role starts with this (repeatable; default: "
+                        f"{', '.join(DEFAULT_ROLES)} - which includes 'Learner - (Incomplete)')")
+    p.add_argument("--all-roles", action="store_true",
+                   help="Keep everyone on the page, instructors included")
     p.add_argument("--exclude", action="append", metavar="USERNAME",
-                   help="Leave out this username, e.g. yourself or a TA (repeatable)")
+                   help="Also leave out this username (repeatable)")
     p.set_defaults(func=cmd_roster)
 
     p = sub.add_parser("folders", help="Create one empty feedback folder per student")

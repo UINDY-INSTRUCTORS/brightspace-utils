@@ -1,32 +1,56 @@
-<!-- Synthetic Brightspace Classlist grid: same markup shape as a saved Classlist page, invented people. -->
-<html><body><table class="d2l-table d2l-grid d_gl">
+<!-- Synthetic Brightspace Classlist grid: same markup shape as a saved Classlist page, invented people.
+     Row cells: [select] [image] [name link] [username] [org-defined id] [role] [last accessed] -->
+<html><body>
+<!-- An unrelated control earlier in the page. A page-wide non-greedy regex once matched from
+     here to the first row's checkbox and put the whole page into that student's name. -->
+<div role="toolbar"><input type="checkbox" aria-label="Select all rows on this page" name="z_all"></div>
+<nav>lots of navigation markup ...</nav>
+<table class="d2l-table d2l-grid d_gl">
+<tr><th>Image</th><th>Last Name, First Name</th><th>Username</th><th>Org Defined ID</th><th>Role</th><th>Last Accessed</th></tr>
 <tr>
-  <th class="d_hch"><input type="checkbox" aria-label="Select Ada Lovelace" name="gridUsers_cb" value="i0_90001"></th>
-  <th class="d_gn"><a>Lovelace, Ada</a></th>
+  <td class="d_gd_sel d2l-table-cell-first"><input type="checkbox" aria-label="Select Ada Lovelace" name="gridUsers_cb" value="i0_90001"></td>
+  <td class="d_gn"><img src="profile.png" alt="Profile image for Ada Lovelace"></td>
+  <th class="d_ich"><a href="#">Lovelace, Ada</a></th>
   <td class="d_gn"><label>lovelacea</label></td>
   <td class="d_gn"><label>A00000001</label></td>
-  <td class="d_gn"><label>Student</label></td>
+  <td class="d_gn"><label>Learner</label></td>
+  <td class="d_gn d2l-table-cell-last"><label>Sep 20, 2026 9:15 AM</label></td>
 </tr>
 <tr>
-  <th class="d_hch"><input type="checkbox" aria-label="Select Grace   Hopper" name="gridUsers_cb" value="i1_90002"></th>
-  <th class="d_gn"><a>Hopper, Grace</a></th>
+  <td class="d_gd_sel d2l-table-cell-first"><input type="checkbox" aria-label="Select Grace   Hopper" name="gridUsers_cb" value="i1_90002"></td>
+  <td class="d_gn"><img src="profile.png" alt=""></td>
+  <th class="d_ich"><a href="#">Hopper, Grace</a></th>
   <td class="d_gn"><label>hopperg</label></td>
   <td class="d_gn"><label>A00000002</label></td>
-  <td class="d_gn"><label>Student</label></td>
+  <td class="d_gn"><label>Learner - (Incomplete)</label></td>
+  <td class="d_gn d2l-table-cell-last"><label></label></td>
 </tr>
 <tr>
-  <th class="d_hch"><input type="checkbox" aria-label="Select Alan Turing" name="gridUsers_cb" value="i2_90003"></th>
-  <th class="d_gn"><a>Turing, Alan</a></th>
-  <td class="d_gn"><label>turinga</label></td>
+  <td class="d_gd_sel d2l-table-cell-first"><input type="checkbox" aria-label="Select Miles O&#39;Brien" name="gridUsers_cb" value="i2_90003"></td>
+  <td class="d_gn"><img src="profile.png" alt=""></td>
+  <th class="d_ich"><a href="#">O&#39;Brien, Miles</a></th>
+  <td class="d_gn"><label>obrienm</label></td>
   <td class="d_gn"><label>A00000003</label></td>
-  <td class="d_gn"><label>Student</label></td>
+  <td class="d_gn"><label>Learner</label></td>
+  <td class="d_gn d2l-table-cell-last"><label>Sep 21, 2026 3:02 PM</label></td>
+</tr>
+<tr>
+  <td class="d_gd_sel d2l-table-cell-first"><input type="checkbox" aria-label="Select Alan Turing" name="gridUsers_cb" value="i3_90004"></td>
+  <td class="d_gn"><img src="profile.png" alt=""></td>
+  <th class="d_ich"><a href="#">Turing, Alan</a></th>
+  <td class="d_gn"><label>turinga</label></td>
+  <td class="d_gn"><label>A00000004</label></td>
+  <td class="d_gn"><label>Instructor</label></td>
+  <td class="d_gn d2l-table-cell-last"><label>Sep 26, 2026 7:00 PM</label></td>
 </tr>
 <!-- Brightspace repeats rows in some views; must be de-duplicated -->
 <tr>
-  <th class="d_hch"><input type="checkbox" aria-label="Select Ada Lovelace" name="gridUsers_cb" value="i3_90001"></th>
-  <th class="d_gn"><a>Lovelace, Ada</a></th>
+  <td class="d_gd_sel d2l-table-cell-first"><input type="checkbox" aria-label="Select Ada Lovelace" name="gridUsers_cb" value="i4_90001"></td>
+  <td class="d_gn"><img src="profile.png" alt=""></td>
+  <th class="d_ich"><a href="#">Lovelace, Ada</a></th>
   <td class="d_gn"><label>lovelacea</label></td>
   <td class="d_gn"><label>A00000001</label></td>
-  <td class="d_gn"><label>Student</label></td>
+  <td class="d_gn"><label>Learner</label></td>
+  <td class="d_gn d2l-table-cell-last"><label>Sep 20, 2026 9:15 AM</label></td>
 </tr>
 </table></body></html>

@@ -13,7 +13,7 @@ the right submission.
 
 ```bash
 # 1. In Brightspace: Classlist -> save the page as HTML (File > Save Page As, "HTML only")
-uv run folder-feedback/folder_feedback.py roster classlist.html -o roster.csv --exclude yourusername
+uv run folder-feedback/folder_feedback.py roster classlist.html -o roster.csv
 
 # 2. Empty per-student folders for one assignment
 uv run folder-feedback/folder_feedback.py folders --assignment-id 192268 -r roster.csv
@@ -28,11 +28,15 @@ Upload `upload-192268.zip` from the assignment's submissions page.
 
 | Command | Does | Key options |
 |---|---|---|
-| `roster CLASSLIST` | Classlist HTML → `roster.csv` (user id, username, org id, name), de-duplicated | `-o`, `--exclude USERNAME` (repeatable) |
+| `roster CLASSLIST` | Classlist HTML → `roster.csv` (user id, username, org id, name, role), de-duplicated. Keeps **Learners** only by default | `-o`, `--role PREFIX`, `--all-roles`, `--exclude USERNAME` |
 | `folders` | One empty folder per roster student | `-a/--assignment-id` (required), `-r`, `-o`, `--timestamp`, `--exclude`, `-n/--dry-run`, `-f/--force` |
 | `pack DIR` | Zip the folders that contain a file; lists the empty ones it skipped | `-o` |
 
 The **assignment id** is the `db=` value in the assignment's URL.
+
+**Roles.** `roster` reads each person's role from the Classlist and keeps those starting with
+`Learner` — which includes `Learner - (Incomplete)`, so check those. Instructors are dropped
+without needing `--exclude`. It prints what it kept and skipped by role.
 
 Folder name format:
 
@@ -42,8 +46,9 @@ Folder name format:
 
 ## Guards
 
-- `roster` fails if it finds no students (wrong page saved, or Brightspace changed its markup)
-  rather than writing an empty CSV.
+- `roster` parses the Classlist **row by row**, so one odd row can't bleed into the next, and
+  decodes HTML entities (`O&#39;Brien` → `O'Brien`). It fails if it finds nobody, or if the
+  role filter leaves nobody, rather than writing an empty CSV.
 - `folders` refuses to add to a non-empty output directory without `--force`, and rejects a
   roster CSV that doesn't have the expected columns.
 - `pack` leaves out empty folders and dotfiles (`.DS_Store`), and fails if every folder is empty.
