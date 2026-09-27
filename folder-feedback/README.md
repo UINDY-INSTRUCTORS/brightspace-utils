@@ -41,7 +41,14 @@ without needing `--exclude`. It prints what it kept and skipped by role.
 Folder name format:
 
 ```
-<brightspace_user_id>-<assignment_id> - <Full Name> - <Mon DD, YYYY HHMM AM>
+<brightspace_user_id>-<assignment_id> - <Full Name> - <Mon D, YYYY HMM AM>
+```
+
+For comparison, a real **group** submission download (Sep 2026) names folders
+
+```
+95869-192899 - Earth, Wind, and Fire - Leah Price - Sep 25, 2026 141 PM
+<group_id>-<assignment_id> - <Group Name> - <Submitter> - <timestamp>
 ```
 
 ## Guards

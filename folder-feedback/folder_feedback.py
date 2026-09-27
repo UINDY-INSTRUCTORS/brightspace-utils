@@ -42,8 +42,9 @@ USERNAME_CELL, ORG_ID_CELL, ROLE_CELL = 3, 4, 5
 
 DEFAULT_ROLES = ["Learner"]  # prefix match, so "Learner - (Incomplete)" is kept
 
-# e.g. "Sep 26, 2026 0741 PM"
-TIMESTAMP_FORMAT = "%b %d, %Y %I%M %p"
+# As Brightspace writes it in submission downloads: no zero-padding on day or hour,
+# e.g. "Sep 2, 2026 141 PM" (seen in real group-submission zips, Sep 2026).
+TIMESTAMP_FORMAT = "%b %-d, %Y %-I%M %p"
 
 
 def _text(fragment: str) -> str:
