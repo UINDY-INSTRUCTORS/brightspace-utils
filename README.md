@@ -9,6 +9,7 @@ the web UI.
 |---|---|
 | [`rubric-sync/`](rubric-sync/) | Convert a `RUBRIC.md` into a Brightspace-importable rubric package (`.zip`) |
 | [`folder-feedback/`](folder-feedback/) | Per-student folders in Brightspace's naming, zipped for bulk feedback upload *(unverified)* |
+| [`group-attendance/`](group-attendance/) | Attendance and team roles from group-submission zips of in-class team reports |
 
 ## Setup
 

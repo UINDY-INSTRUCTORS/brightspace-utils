@@ -22,5 +22,5 @@ python-preference = "only-managed"
 
 [tool.pytest.ini_options]
 # each tool's modules import each other as top-level modules (from rubric_parser import ...)
-pythonpath = ["rubric-sync", "folder-feedback"]
-testpaths = ["rubric-sync", "folder-feedback"]
+pythonpath = ["rubric-sync", "folder-feedback", "group-attendance"]
+testpaths = ["rubric-sync", "folder-feedback", "group-attendance"]

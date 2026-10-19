@@ -1,3 +1,9 @@
+# Credentials
+.env
+.env.*
+*.pem
+*.key
+
 __pycache__/
 *.py[cod]
 .venv/
@@ -23,3 +29,10 @@ users.csv
 upload-*/
 brightspace_user_map.csv
 *user*map*.csv
+# group-attendance working files: rosters, transcribed roles, attendance
+attendance*.csv
+roles*.json
+submissions.json
+transcribe.md
+review.md
+Teams_*.csv
