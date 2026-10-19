@@ -123,8 +123,10 @@ def test_scan_then_report(tmp_path):
     assert rows[("bol", "9/9")]["status"] == "absent"
     assert rows[("cyw", "9/9")]["status"] == "n/a"
     assert rows[("dee", "9/9")]["status"] == "no report"
+    assert ("annr", "9/4") not in rows          # no team reported 9/2 or 9/4: left out
     review = (tmp_path / "review.md").read_text()
     assert "Bo: sick" in review and "9/9 Blue Team" in review
+    assert "## Class days left out" in review and "Fri 9/4" in review
 
     # a later download with a new submission flips the entry to recheck
     write_zip(z, [

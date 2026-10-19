@@ -394,21 +394,28 @@ def report(args) -> None:
 
     dated = [dt.date.fromisoformat(k.split("|")[1]) for k in roles]
     through = dt.date.fromisoformat(args.through) if args.through else max(dated, default=cal.first)
-    days = cal.days(through)
     blocks = multi_day(cfg)
+    # A day with no report from any team had no class or no in-class activity: nothing to
+    # take attendance from, so it is left out of the CSV.
+    teams = {p["team"] for p in roster.values()}
+    days, skipped = [], []
+    for d in cal.days(through):
+        reported = any(entry_for(roles, t, d.isoformat(), blocks)[0] for t in teams)
+        (days if reported else skipped).append(d)
     rows = statuses(roster, roles, cal, days, excused, blocks)
 
     with open(args.output, "w", newline="", encoding="utf-8") as f:
         w = csv.DictWriter(f, fieldnames=["team", "username", "name", "date", "status", "roles"])
         w.writeheader()
         w.writerows(rows)
-    print(f"wrote {args.output}: {len(rows)} rows, {len(roster)} students x {len(days)} class days")
+    print(f"wrote {args.output}: {len(rows)} rows, {len(roster)} students x {len(days)} class days"
+          + (f" ({len(skipped)} with no reports left out)" if skipped else ""))
     if args.review:
-        args.review.write_text(review(rows, roles, subs, roster, days, blocks))
+        args.review.write_text(review(rows, roles, subs, roster, days, blocks, skipped))
         print(f"wrote {args.review}")
 
 
-def review(rows, roles, subs, roster, days, blocks=None) -> str:
+def review(rows, roles, subs, roster, days, blocks=None, skipped=()) -> str:
     blocks = blocks or {}
     teams = sorted({p["team"] for p in roster.values()})
     out = ["# Attendance review", ""]
@@ -416,15 +423,14 @@ def review(rows, roles, subs, roster, days, blocks=None) -> str:
     tally = collections.Counter(r["status"] for r in rows)
     out += ["Status counts: " + ", ".join(f"{n} {s}" for s, n in tally.most_common()), ""]
 
-    nothing = [d for d in days if not any(key(t, d.isoformat()) in roles for t in teams)]
-    if nothing:
-        out += ["## Class days with no reports from any team", "",
-                "No submissions were scanned for these days. Either there was no team report "
-                "(test, lab without a report, cancelled class) or its zip hasn't been downloaded "
-                "yet. Add the date to `no_class` in config.json if there was no class.", ""]
-        out += [f"- {d:%a %-m/%-d}" for d in nothing] + [""]
+    if skipped:
+        out += ["## Class days left out", "",
+                "No team submitted anything for these days (no class, or no in-class activity), so "
+                "there is no attendance to record. If one did have an assignment, its zip hasn't "
+                "been scanned yet.", ""]
+        out += [f"- {d:%a %-m/%-d}" for d in skipped] + [""]
 
-    gaps = [(d, t, entry_for(roles, t, d.isoformat(), blocks)[1]) for d in days if d not in nothing
+    gaps = [(d, t, entry_for(roles, t, d.isoformat(), blocks)[1]) for d in days
             for t in teams if key(t, d.isoformat()) not in roles]
     missing = [(d, t) for d, t, via in gaps if via is None]
     if missing:

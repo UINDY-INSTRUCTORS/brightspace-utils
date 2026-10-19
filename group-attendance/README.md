@@ -81,6 +81,10 @@ present earlier. Someone who joins after the class window counts from the next c
 
 ## Statuses in the CSV
 
+A class day on which no team submitted anything is left out of the CSV: with no assignment there
+was no class or no in-class activity, so there is nothing to take attendance from. The review
+lists those days.
+
 `present` (with roles), `absent` (team reported, student not listed), `no report` (team sent
 nothing for that day, or for any day of a multi-day lab), `unknown` (report had no roles), `excused`, `pending` (not yet read),
 `n/a` (before the student joined the team).
