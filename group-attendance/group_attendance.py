@@ -330,12 +330,29 @@ def write_transcribe_list(path: Path, roles: dict, subs: dict, roster: dict) -> 
 
 # ─── Report ─────────────────────────────────────────────────────────────────────
 
-def statuses(roster: dict, roles: dict, cal: Calendar, days: list[dt.date], excused: set) -> list[dict]:
+def multi_day(cfg: dict) -> dict[str, list[str]]:
+    """Each day of a multi-day lab -> every day of that lab."""
+    return {d: block for block in cfg.get("multi_day", []) for d in block}
+
+
+def entry_for(roles: dict, team: str, iso: str, blocks: dict) -> tuple[dict | None, str | None]:
+    """The team's report for a day, or else the one from another day of the same lab.
+    Returns (entry, the day it came from if not this one)."""
+    if (e := roles.get(key(team, iso))) is not None:
+        return e, None
+    for other in blocks.get(iso, []):
+        if other != iso and (e := roles.get(key(team, other))) is not None:
+            return e, other
+    return None, None
+
+
+def statuses(roster: dict, roles: dict, cal: Calendar, days: list[dt.date], excused: set,
+             blocks: dict | None = None) -> list[dict]:
     rows = []
     for u, p in sorted(roster.items(), key=lambda kv: (kv[1]["team"], kv[1]["name"])):
         for d in days:
             iso = d.isoformat()
-            e = roles.get(key(p["team"], iso))
+            e, _ = entry_for(roles, p["team"], iso, blocks or {})
             codes = ""
             if d < p["joined"]:
                 st = "n/a"
@@ -378,7 +395,8 @@ def report(args) -> None:
     dated = [dt.date.fromisoformat(k.split("|")[1]) for k in roles]
     through = dt.date.fromisoformat(args.through) if args.through else max(dated, default=cal.first)
     days = cal.days(through)
-    rows = statuses(roster, roles, cal, days, excused)
+    blocks = multi_day(cfg)
+    rows = statuses(roster, roles, cal, days, excused, blocks)
 
     with open(args.output, "w", newline="", encoding="utf-8") as f:
         w = csv.DictWriter(f, fieldnames=["team", "username", "name", "date", "status", "roles"])
@@ -386,11 +404,12 @@ def report(args) -> None:
         w.writerows(rows)
     print(f"wrote {args.output}: {len(rows)} rows, {len(roster)} students x {len(days)} class days")
     if args.review:
-        args.review.write_text(review(rows, roles, subs, roster, days))
+        args.review.write_text(review(rows, roles, subs, roster, days, blocks))
         print(f"wrote {args.review}")
 
 
-def review(rows, roles, subs, roster, days) -> str:
+def review(rows, roles, subs, roster, days, blocks=None) -> str:
+    blocks = blocks or {}
     teams = sorted({p["team"] for p in roster.values()})
     out = ["# Attendance review", ""]
 
@@ -405,11 +424,18 @@ def review(rows, roles, subs, roster, days) -> str:
                 "yet. Add the date to `no_class` in config.json if there was no class.", ""]
         out += [f"- {d:%a %-m/%-d}" for d in nothing] + [""]
 
-    missing = [(d, t) for d in days if d not in nothing for t in teams
-               if key(t, d.isoformat()) not in roles]
+    gaps = [(d, t, entry_for(roles, t, d.isoformat(), blocks)[1]) for d in days if d not in nothing
+            for t in teams if key(t, d.isoformat()) not in roles]
+    missing = [(d, t) for d, t, via in gaps if via is None]
     if missing:
         out += ["## Teams with no report", ""]
         out += [f"- {d:%-m/%-d} {t}" for d, t in missing] + [""]
+    covered = [(d, t, via) for d, t, via in gaps if via]
+    if covered:
+        out += ["## Covered by the other day of a multi-day lab", "",
+                "The team sent one report for the lab; it counts for both days.", ""]
+        out += [f"- {d:%-m/%-d} {t}: from the {dt.date.fromisoformat(via):%-m/%-d} report"
+                for d, t, via in covered] + [""]
 
     open_ = [k for k, e in roles.items() if e["status"] != "done"]
     if open_:

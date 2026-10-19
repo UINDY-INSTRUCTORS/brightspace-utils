@@ -68,9 +68,13 @@ means present with no role given.
  "no_class": ["2026-09-07", "2026-10-19"],
  "joined": {"username": "2026-09-09"},
  "excused": [{"username": "username", "date": "2026-09-25", "why": "..."}],
- "reassign": {"<submission folder name>": {"date": "2026-10-02", "why": "..."}}
+ "reassign": {"<submission folder name>": {"date": "2026-10-02", "why": "..."}},
+ "multi_day": [["2026-09-30", "2026-10-02"]]
 }
 ```
+
+`multi_day` lists labs that ran over several class days. A team that sent one report for the lab
+is counted from it on the days it has no report of its own; a day it did report stands as reported.
 
 `joined` overrides the Teams export's group enrollment date when the reports show a student
 present earlier. Someone who joins after the class window counts from the next class.
@@ -78,5 +82,5 @@ present earlier. Someone who joins after the class window counts from the next c
 ## Statuses in the CSV
 
 `present` (with roles), `absent` (team reported, student not listed), `no report` (team sent
-nothing for that day), `unknown` (report had no roles), `excused`, `pending` (not yet read),
+nothing for that day, or for any day of a multi-day lab), `unknown` (report had no roles), `excused`, `pending` (not yet read),
 `n/a` (before the student joined the team).

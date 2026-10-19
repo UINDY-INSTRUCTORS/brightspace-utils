@@ -144,3 +144,19 @@ def test_report_rejects_unknown_people(tmp_path):
     with pytest.raises(SystemExit, match="nobody"):
         ga.main(["report", "--roster", str(tmp_path / "teams.csv"), "--config", str(tmp_path / "config.json"),
                  "--roles", str(tmp_path / "roles.json"), "-o", str(tmp_path / "o.csv")])
+
+
+def test_multi_day_lab_borrows_the_other_days_report(cal):
+    roster = {"areed": {"team": "Red Team", "name": "Ann Reed", "first": "Ann", "joined": dt.date(2026, 9, 2)},
+              "bblue": {"team": "Blue Team", "name": "Bo Blue", "first": "Bo", "joined": dt.date(2026, 9, 2)}}
+    done = lambda who: {"status": "done", "submissions": [], "present": who}
+    roles = {"Red Team|2026-10-02": done({"areed": "C"}),
+             "Blue Team|2026-09-30": done({}), "Blue Team|2026-10-02": done({"bblue": "R"})}
+    days = [dt.date(2026, 9, 30), dt.date(2026, 10, 2), dt.date(2026, 10, 5)]
+    blocks = ga.multi_day({"multi_day": [["2026-09-30", "2026-10-02"]]})
+    got = {(r["username"], r["date"]): r["status"] for r in ga.statuses(roster, roles, cal, days, set(), blocks)}
+    assert got[("areed", "9/30")] == "present"      # borrowed from 10/2
+    assert got[("bblue", "9/30")] == "absent"       # Blue reported 9/30 itself; that report stands
+    assert got[("areed", "10/5")] == "no report"    # outside the lab
+    text = ga.review(ga.statuses(roster, roles, cal, days, set(), blocks), roles, {}, roster, days, blocks)
+    assert "9/30 Red Team: from the 10/2 report" in text
