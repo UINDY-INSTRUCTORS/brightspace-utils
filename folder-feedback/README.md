@@ -47,7 +47,7 @@ Folder name format:
 For comparison, a real **group** submission download (Sep 2026) names folders
 
 ```
-95869-192899 - Earth, Wind, and Fire - Leah Price - Sep 25, 2026 141 PM
+10421-20077 - Red Team - Ann Reed - Sep 25, 2026 141 PM
 <group_id>-<assignment_id> - <Group Name> - <Submitter> - <timestamp>
 ```
 
