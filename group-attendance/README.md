@@ -14,6 +14,10 @@ session) fills in `roles.json`.
 ```bash
 # 1. Download each assignment's submissions from Brightspace (Select all -> Download).
 #    Also export the Teams group category (Groups -> Export) for the roster.
+#    Or fetch the zips through your logged-in Brightspace tab (Chrome started with
+#    --remote-debugging-port=9222); same layout, read-only API calls:
+uv run group-attendance/fetch_submissions.py --ou <orgUnitId> --list
+uv run group-attendance/fetch_submissions.py --ou <orgUnitId> --out DIR <folderId> ...
 
 # 2. Index the zips. Safe to re-run on every zip each time: team-days already read are kept.
 uv run group-attendance/group_attendance.py scan *.zip \
