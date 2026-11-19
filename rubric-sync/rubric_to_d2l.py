@@ -45,27 +45,32 @@ class RubricToD2L:
 
         return '<?xml version="1.0" encoding="UTF-8"?>\n' + '\n'.join(lines)
 
-    def _assign_level_ids(self):
-        """Assign numeric IDs to each level based on canonical order."""
-        # Levels are: Exemplary/Excellent (3), Good/Satisfactory (2), Poor/Developing (1), Unsatisfactory (0)
-        id_counter = {3.0: 60000, 2.0: 60001, 1.0: 60002, 0.0: 60003}
+    # Level names normalised to Brightspace's usual scale. Any other name (e.g. "Met",
+    # "Not yet") is kept as written.
+    CANONICAL = {'excellent': 'Exemplary', 'exemplary': 'Exemplary', 'good': 'Satisfactory',
+                 'satisfactory': 'Satisfactory', 'poor': 'Developing', 'developing': 'Developing',
+                 'unsatisfactory': 'Unsatisfactory'}
+    FULL_SCALE = [('Exemplary', 3.0), ('Satisfactory', 2.0), ('Developing', 1.0), ('Unsatisfactory', 0.0)]
 
-        # Collect all unique level names and their values
-        level_map = {}
+    def _assign_level_ids(self):
+        """
+        The rubric's level set, highest first, as [(name, value, level_id)].
+
+        A rubric whose levels are all on the usual E/S/D/U scale gets the full four-level
+        set, as before, even if some levels are unused. A rubric with any other level name
+        (a two-level Met / Not yet rubric) gets exactly the levels it uses, named as written.
+        """
+        present = {}
         for criterion in self.rubric.criteria:
             for level in criterion.levels:
-                if level.name not in level_map:
-                    # Map level names to their canonical values
-                    if level.value == 3.0:
-                        level_map[level.name] = (3.0, 60000)
-                    elif level.value == 2.0:
-                        level_map[level.name] = (2.0, 60001)
-                    elif level.value == 1.0:
-                        level_map[level.name] = (1.0, 60002)
-                    else:
-                        level_map[level.name] = (0.0, 60003)
-
-        self.level_ids = level_map
+                present.setdefault(level.value, level.name)
+        if all(n.lower() in self.CANONICAL for n in present.values()):
+            levels = self.FULL_SCALE
+        else:
+            levels = [(self.CANONICAL.get(n.lower(), n), v)
+                      for v, n in sorted(present.items(), reverse=True)]
+        self.level_set = [(name, value, 60000 + i) for i, (name, value) in enumerate(levels)]
+        self.level_ids = {value: level_id for _, value, level_id in self.level_set}
 
     def _create_rubric_element(self) -> ET.Element:
         """Create the main <rubric> element."""
@@ -113,16 +118,7 @@ class RubricToD2L:
         level_set_elem = ET.SubElement(cg_elem, 'level_set')
         levels_elem = ET.SubElement(level_set_elem, 'levels')
 
-        # Canonical levels: Exemplary (3), Good/Satisfactory (2), Developing/Poor (1), Unsatisfactory (0)
-        # Display order: sorted by value descending, then by name
-        level_definitions = [
-            ('Exemplary', 3.0, 60000),
-            ('Satisfactory', 2.0, 60001),
-            ('Developing', 1.0, 60002),
-            ('Unsatisfactory', 0.0, 60003),
-        ]
-
-        for i, (level_name, level_value, level_id) in enumerate(level_definitions, 1):
+        for i, (level_name, level_value, level_id) in enumerate(self.level_set, 1):
             level_elem = ET.SubElement(levels_elem, 'level')
             level_elem.set('name', level_name)
             level_elem.set('sort_order', str(i))
@@ -149,28 +145,10 @@ class RubricToD2L:
         # Cells (one per level)
         cells_elem = ET.SubElement(criterion_elem, 'cells')
 
-        # Normalize level names to canonical forms for matching
-        canonical_levels = [
-            ('Exemplary', 3.0, 60000),
-            ('Satisfactory', 2.0, 60001),
-            ('Developing', 1.0, 60002),
-            ('Unsatisfactory', 0.0, 60003),
-        ]
-
-        for canonical_name, canonical_value, level_id in canonical_levels:
-            # Find corresponding criterion level
-            matching_level = None
-            for crit_level in criterion.levels:
-                if crit_level.value == canonical_value:
-                    matching_level = crit_level
-                    break
-
-            # If no match by value, skip
-            if not matching_level:
-                continue
-
-            cell_elem = self._create_cell_element(matching_level, level_id)
-            cells_elem.append(cell_elem)
+        for _, level_value, level_id in self.level_set:
+            matching_level = next((l for l in criterion.levels if l.value == level_value), None)
+            if matching_level:
+                cells_elem.append(self._create_cell_element(matching_level, level_id))
 
         return criterion_elem
 
@@ -220,6 +198,8 @@ class RubricToD2L:
             ('Developing', 1.0),
             ('Unsatisfactory', 0.0),
         ]
+        if self.level_set != [(n, v, 60000 + i) for i, (n, v) in enumerate(self.FULL_SCALE)]:
+            thresholds = [(name, value) for name, value, _ in self.level_set]
 
         for i, (level_name, threshold) in enumerate(thresholds, 1):
             overall_level_elem = ET.SubElement(overall_levels_elem, 'overall_level')

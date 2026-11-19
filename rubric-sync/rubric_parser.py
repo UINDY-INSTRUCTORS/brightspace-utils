@@ -8,10 +8,13 @@ from rubric_data import RubricData, Criterion, Level
 # Level-name keyword -> canonical value, checked in order. "Unsatisfactory" must
 # come before "Satisfactory" since one contains the other.
 LEVEL_VALUES = [
+    ('not yet', 0.0),            # two-level Met / Not yet rubrics (CSCI-350, 11/19)
+    ('not met', 0.0),            # before 'met', which it contains
     ('unsatisfactory', 0.0),
     ('excellent', 3.0), ('exemplary', 3.0),
     ('good', 2.0), ('satisfactory', 2.0),
     ('poor', 1.0), ('developing', 1.0),
+    ('met', 1.0),
 ]
 
 

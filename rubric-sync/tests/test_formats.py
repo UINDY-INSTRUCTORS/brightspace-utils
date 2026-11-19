@@ -83,3 +83,28 @@ def test_packages_to_importable_zip(fixture, tmp_path):
     out = RubricPackager(parse(fixture)).create_package(tmp_path / "rubric.zip")
     with zipfile.ZipFile(out) as z:
         assert set(z.namelist()) == {"imsmanifest.xml", "rubrics_d2l.xml"}
+
+
+def test_met_not_yet_two_levels_only():
+    # A Met / Not yet rubric keeps its own two levels: no empty Exemplary or Unsatisfactory columns
+    from rubric_to_d2l import RubricToD2L
+    rubric = parse("met-not-yet.md")
+    assert rubric.format == "table"
+    assert [(l.name, l.value) for l in rubric.criteria[0].levels] == [("Met", 1.0), ("Not yet", 0.0)]
+    xml = RubricToD2L(rubric).generate_xml()
+    assert '<level name="Met" sort_order="1" level_id="60000"/>' in xml
+    assert '<level name="Not yet" sort_order="2" level_id="60001"/>' in xml
+    assert "Exemplary" not in xml and "Unsatisfactory" not in xml
+
+
+def test_standard_scale_keeps_four_levels():
+    from rubric_to_d2l import RubricToD2L
+    xml = RubricToD2L(parse("ph230-table-inline-weight.md")).generate_xml()
+    for name in ("Exemplary", "Satisfactory", "Developing", "Unsatisfactory"):
+        assert f'<level name="{name}"' in xml
+
+
+def test_not_met_is_the_lower_level():
+    # "Not met" contains "met"; it must still be the lower of the two levels
+    from rubric_parser import level_value
+    assert level_value("Not met") == 0.0 and level_value("Met") == 1.0 and level_value("Not yet") == 0.0

@@ -106,6 +106,19 @@ Used by the newer PH-230 / PH-280 feedback rubrics (`ai-feedback-system/ph230-p*
 - Rows may span several lines with indented ` |` continuations (the `phys-230-rubric.md`
   template style)
 
+### Met / Not yet (two levels)
+
+A table whose level columns are `Met` and `Not met` (or `Not yet`), in any order, makes a two-level rubric: the
+package has exactly those two levels, named as written, with no empty Exemplary or
+Unsatisfactory columns. Any rubric whose levels are all on the usual scale still gets the full
+Exemplary / Satisfactory / Developing / Unsatisfactory set.
+
+```markdown
+| Criterion | Not yet | Met |
+|---|---|---|
+| **One small program, run (15%)** | Code shown but never run. | Run on screen, output shown, walked through. |
+```
+
 ### Detection and failures
 
 Detection order: `## Criterion N:` → Lab; `| # | Report Section |` → ABET; level-name header →
